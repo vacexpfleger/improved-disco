@@ -1,7 +1,10 @@
 from tkinter import *
 from tkinter import filedialog
+import customtkinter
 import tkinter as tk
 from pygame import mixer
+
+root = Tk()
 
 
 class Player:
@@ -14,7 +17,7 @@ class Player:
         self.play_restart.set("Play")
         self.pause_resume.set("Pause")
 
-        load_button = Button(window, text="Load", width=10, font=("Arial",12), command=self.load)
+        load_button = customtkinter.CTkButton(master=root, text="Load", image="", corner_radius=10, command=self.load)
         load_button.place(x=100, y=40, anchor="center")
         play_button = Button(window, textvariable=self.play_restart, width=10, font=("Arial", 12), command=self.play)
         play_button.place(x=100, y=80, anchor="center")
@@ -52,6 +55,5 @@ class Player:
         mixer.music.stop()
 
 
-root = Tk()
 Player(root)
 root.mainloop()
