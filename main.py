@@ -13,7 +13,7 @@ mixer.init()
 
 class App(tk.Tk):
 
-    NAME = "Music Player"
+    NAME = "Improved Disco"
     WIDTH = 700
     HEIGHT = 500
     PATH = os.path.dirname(os.path.realpath(__file__))
@@ -24,6 +24,7 @@ class App(tk.Tk):
         self.title(App.NAME)
         self.geometry(str(App.WIDTH) + "x" + str(App.HEIGHT))
         self.minsize(App.WIDTH, App.HEIGHT)
+        self.resizable(False, False)
         self.iconphoto(False, tk.PhotoImage(file='music_player.png'))
 
         # image init
@@ -90,18 +91,27 @@ class App(tk.Tk):
 
         self.file = None
         self.song = None
+        self.update_time = None
         self.playing = False
+        self.add_count = 0
         self.songs_list = []
 
     def add_songs(self):
+        # adds songs to playlist
         songs = filedialog.askopenfilenames(title="Choose A Song", filetypes=(("mp3 Files", "*.mp3"), ))
         for song in songs:
-            split_songs = list(os.path.split(song))  # split song path into two separate parts (directory, file)
+            split_songs = list(os.path.split(song))  # splits song path into two separate parts (directory, file)
             self.songs_list.append(split_songs)
             self.playlist.insert(END, split_songs[1])  # adds song name to playlist
-        self.playlist.select_set(0)
+        self.add_count += 1
+        temp_selection = self.playlist.curselection()
+        if self.add_count > 1:
+            self.highlight(temp_selection[0])
+        else:
+            self.highlight(0)
 
     def play(self):
+        # plays a song
         self.song = self.playlist.get(ACTIVE)
         song_directory = list(filter(lambda active: active[1] == self.song, self.songs_list))  # looks for directory
         self.file = str(song_directory[0][0]) + "/" + str(self.song)  # sticks it back together
@@ -110,16 +120,14 @@ class App(tk.Tk):
         self.play_time()
 
     def play_alt(self, song_number):
+        # plays a next song
         self.song = self.playlist.get(song_number)
         song_directory = list(filter(lambda active: active[1] == self.song, self.songs_list))
         self.file = str(song_directory[0][0]) + "/" + str(self.song)
         mixer.music.load(self.file)
         mixer.music.play()
         self.play_time()
-        # highlight the next song in playlist
-        self.playlist.selection_clear(0, END)
-        self.playlist.activate(song_number)
-        self.playlist.selection_set(song_number, last=None)
+        self.highlight(song_number)
 
     def pause(self):
         if not self.playing:
@@ -130,7 +138,6 @@ class App(tk.Tk):
             self.playing = False
 
     def play_time(self):
-        global time_update
         current_time = mixer.music.get_pos() / 1000
         time_converted = time.strftime("%H:%M:%S", time.gmtime(current_time))
         song_duration = time.strftime("%H:%M:%S", time.gmtime(int(MP3(self.file).info.length)))
@@ -145,13 +152,11 @@ class App(tk.Tk):
         else:
             mixer.music.stop()
             final_time = f'End of playlist.'
-            self.playlist.selection_clear(0, END)
-            self.playlist.activate(0)
-            self.playlist.selection_set(0, last=None)
+            self.highlight(0)
 
         self.status_bar.config(text=final_time)
         self.status_bar.place(relx=0.5, y=215, anchor=tk.CENTER)
-        time_update = self.status_bar.after(1000, self.play_time)
+        self.update_time = self.status_bar.after(1000, self.play_time)
 
     def next(self):
         # get an index of the next song
@@ -160,15 +165,20 @@ class App(tk.Tk):
         self.play_alt(next_song)
 
     def previous(self):
-        # get an index of the next song
+        # get an index of the previous song
         next_song = self.playlist.curselection()
         next_song = next_song[0] - 1
         self.play_alt(next_song)
 
     def stop(self):
         mixer.music.stop()
-        self.status_bar.after_cancel(time_update)
+        self.status_bar.after_cancel(self.update_time)
         self.status_bar.config(text=f'00:00:00/00:00:00')
+
+    def highlight(self, selection):
+        self.playlist.selection_clear(0, END)
+        self.playlist.activate(selection)
+        self.playlist.selection_set(selection, last=None)
 
     def clear(self):
         self.playlist.delete(0, END)
