@@ -1,3 +1,4 @@
+import tkinter
 from tkinter import *
 from tkinter import filedialog
 import tkinter as tk
@@ -23,7 +24,7 @@ class App(tk.Tk):
 
         self.title(App.NAME)
         self.geometry(str(App.WIDTH) + "x" + str(App.HEIGHT))
-        self.minsize(App.WIDTH, App.HEIGHT)
+        # self.minsize(App.WIDTH, App.HEIGHT)
         self.resizable(False, False)
         self.iconphoto(False, tk.PhotoImage(file='music_player.png'))
 
@@ -73,11 +74,6 @@ class App(tk.Tk):
         self.status_bar.place(relx=0.5, y=215, anchor=tk.CENTER)
         self.status_bar.place_forget()
 
-        # slider init
-        self.slider = customtkinter.CTkSlider(master=self.frame_right, from_=0, to=100, width=250)
-        self.slider.place(relx=0.5, y=250, anchor=tk.CENTER)
-        self.slider.place_forget()
-
         # menu init
         self.player_menu = Menu(self)
         self.config(menu=self.player_menu)
@@ -92,6 +88,7 @@ class App(tk.Tk):
         self.file = None
         self.song = None
         self.update_time = None
+        self.song_info = None
         self.playing = False
         self.add_count = 0
         self.songs_list = []
@@ -113,21 +110,23 @@ class App(tk.Tk):
     def play(self):
         # plays a song
         self.song = self.playlist.get(ACTIVE)
-        song_directory = list(filter(lambda active: active[1] == self.song, self.songs_list))  # looks for directory
-        self.file = str(song_directory[0][0]) + "/" + str(self.song)  # sticks it back together
+        self.song_directory = list(filter(lambda active: active[1] == self.song, self.songs_list))  # looks for directory
+        self.file = str(self.song_directory[0][0]) + "/" + str(self.song)  # sticks it back together
         mixer.music.load(self.file)
         mixer.music.play()
         self.play_time()
+        self.show_album()
 
     def play_alt(self, song_number):
         # plays a next song
         self.song = self.playlist.get(song_number)
-        song_directory = list(filter(lambda active: active[1] == self.song, self.songs_list))
-        self.file = str(song_directory[0][0]) + "/" + str(self.song)
+        self.song_directory = list(filter(lambda active: active[1] == self.song, self.songs_list))
+        self.file = str(self.song_directory[0][0]) + "/" + str(self.song)
         mixer.music.load(self.file)
         mixer.music.play()
         self.play_time()
         self.highlight(song_number)
+        self.show_album()
 
     def pause(self):
         if not self.playing:
@@ -179,6 +178,21 @@ class App(tk.Tk):
         self.playlist.selection_clear(0, END)
         self.playlist.activate(selection)
         self.playlist.selection_set(selection, last=None)
+
+    def show_album(self):
+        try:
+            album_image = ImageTk.PhotoImage(Image.open(str(self.song_directory[0][0]) + "/cover.jpg").resize((150, 150)))
+            print("Album cover je dostupný.")
+        except IOError:
+            print(f"Album cover není dostupný.")
+            if self.song_info.winfo_exists() == 1:
+                self.song_info.place_forget()
+        else:
+            self.song_info = Label(self.frame_right, image=album_image)
+            self.song_info.image = album_image
+            self.song_info.place(relx=0.5, y=320, anchor=tk.CENTER)
+
+        album_image = None
 
     def clear(self):
         self.playlist.delete(0, END)
