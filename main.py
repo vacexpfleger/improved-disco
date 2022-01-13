@@ -1,13 +1,13 @@
-import tkinter
-from tkinter import *
-from tkinter import filedialog
-import tkinter as tk
-import customtkinter
-from pygame import mixer
-from PIL import Image, ImageTk
-from mutagen.mp3 import MP3
 import os
 import time
+import tkinter as tk
+from tkinter import *
+from tkinter import filedialog
+import customtkinter
+from PIL import Image, ImageTk
+from tinytag import TinyTag
+from mutagen.mp3 import MP3
+from pygame import mixer
 
 mixer.init()
 
@@ -34,6 +34,7 @@ class App(tk.Tk):
         stop_image = ImageTk.PhotoImage(Image.open(self.PATH + "/stop.png").resize((40, 40)))
         next_image = ImageTk.PhotoImage(Image.open(self.PATH + "/next.png").resize((40, 40)))
         previous_image = ImageTk.PhotoImage(Image.open(self.PATH + "/previous.png").resize((40, 40)))
+        self.default_album = ImageTk.PhotoImage(Image.open(self.PATH + "/default.png").resize((150, 150)))
 
         # frame init
         self.frame_left = customtkinter.CTkFrame(master=self, width=200, height=App.HEIGHT - 40, corner_radius=10)
@@ -74,6 +75,11 @@ class App(tk.Tk):
         self.status_bar.place(relx=0.5, y=215, anchor=tk.CENTER)
         self.status_bar.place_forget()
 
+        # album show init
+        self.song_info = Label(self.frame_right, text="", image=self.default_album, compound=TOP)
+        self.song_info.place(relx=0.5, y=340, anchor=tk.CENTER)
+        self.song_info.place_forget()
+
         # menu init
         self.player_menu = Menu(self)
         self.config(menu=self.player_menu)
@@ -88,7 +94,6 @@ class App(tk.Tk):
         self.file = None
         self.song = None
         self.update_time = None
-        self.song_info = None
         self.playing = False
         self.add_count = 0
         self.songs_list = []
@@ -180,19 +185,20 @@ class App(tk.Tk):
         self.playlist.selection_set(selection, last=None)
 
     def show_album(self):
+        global album_name, album_image
         try:
+            album_name = TinyTag.get(self.file)
             album_image = ImageTk.PhotoImage(Image.open(str(self.song_directory[0][0]) + "/cover.jpg").resize((150, 150)))
             print("Album cover je dostupný.")
-        except IOError:
+            print(album_name.album)
+        except FileNotFoundError:
             print(f"Album cover není dostupný.")
-            if self.song_info.winfo_exists() == 1:
-                self.song_info.place_forget()
-        else:
-            self.song_info = Label(self.frame_right, image=album_image)
+            album_image = self.default_album
+        finally:
+            print(type(self.song_info))
+            self.song_info.config(text=album_name.album, image=album_image)
             self.song_info.image = album_image
-            self.song_info.place(relx=0.5, y=320, anchor=tk.CENTER)
-
-        album_image = None
+            self.song_info.place(relx=0.5, y=340, anchor=tk.CENTER)
 
     def clear(self):
         self.playlist.delete(0, END)
