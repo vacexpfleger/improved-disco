@@ -8,6 +8,7 @@ from PIL import Image, ImageTk
 from tinytag import TinyTag
 from mutagen.mp3 import MP3
 from pygame import mixer
+from button_init import button
 
 mixer.init()
 
@@ -27,13 +28,6 @@ class App(tk.Tk):
         # self.minsize(App.WIDTH, App.HEIGHT)
         self.resizable(False, False)
         self.iconphoto(False, tk.PhotoImage(file='music_player.png'))
-
-        # image init
-        play_image = ImageTk.PhotoImage(Image.open(self.PATH + "/play.png").resize((40, 40)))
-        pause_image = ImageTk.PhotoImage(Image.open(self.PATH + "/pause.png").resize((40, 40)))
-        stop_image = ImageTk.PhotoImage(Image.open(self.PATH + "/stop.png").resize((40, 40)))
-        next_image = ImageTk.PhotoImage(Image.open(self.PATH + "/next.png").resize((40, 40)))
-        previous_image = ImageTk.PhotoImage(Image.open(self.PATH + "/previous.png").resize((40, 40)))
         self.default_album = ImageTk.PhotoImage(Image.open(self.PATH + "/default.png").resize((150, 150)))
 
         # frame init
@@ -44,27 +38,7 @@ class App(tk.Tk):
         self.frame_right.place(relx=0.365, rely=0.5, anchor=tk.W)
 
         # button init
-        self.button_1 = customtkinter.CTkButton(master=self.frame_left, image=play_image, text="", command=self.play,
-                                                width=60, height=60, border_width=0, corner_radius=20)
-        self.button_1.place(relx=0.5, y=80, anchor=tk.CENTER)
-
-        self.button_2 = customtkinter.CTkButton(master=self.frame_left, image=pause_image, text="", command=self.pause,
-                                                width=60, height=60, border_width=0, corner_radius=20)
-        self.button_2.place(relx=0.5, y=150, anchor=tk.CENTER)
-
-        self.button_3 = customtkinter.CTkButton(master=self.frame_left, image=stop_image, text="", command=self.stop,
-                                                width=60, height=60, border_width=0, corner_radius=20)
-        self.button_3.place(relx=0.5, y=220, anchor=tk.CENTER)
-
-        self.button_4 = customtkinter.CTkButton(master=self.frame_left, image=previous_image, text="",
-                                                command=self.previous, width=60, height=60, border_width=0,
-                                                corner_radius=20)
-        self.button_4.place(relx=0.5, y=290, anchor=tk.CENTER)
-
-        self.button_5 = customtkinter.CTkButton(master=self.frame_left, image=next_image, text="",
-                                                command=self.next, width=60, height=60, border_width=0,
-                                                corner_radius=20)
-        self.button_5.place(relx=0.5, y=360, anchor=tk.CENTER)
+        self.place_buttons()
 
         # playlist init
         self.playlist = Listbox(self.frame_right, bg="white", fg="black", width=45)
@@ -98,6 +72,24 @@ class App(tk.Tk):
         self.add_count = 0
         self.songs_list = []
 
+    def place_buttons(self):
+        play_image = ImageTk.PhotoImage(Image.open(self.PATH + "/play.png").resize((40, 40)))
+        pause_image = ImageTk.PhotoImage(Image.open(self.PATH + "/pause.png").resize((40, 40)))
+        stop_image = ImageTk.PhotoImage(Image.open(self.PATH + "/stop.png").resize((40, 40)))
+        next_image = ImageTk.PhotoImage(Image.open(self.PATH + "/next.png").resize((40, 40)))
+        previous_image = ImageTk.PhotoImage(Image.open(self.PATH + "/previous.png").resize((40, 40)))
+
+        button_1 = button(self.frame_left, play_image, self.play)
+        button_1.place(relx=0.5, y=80, anchor=tk.CENTER)
+        button_2 = button(self.frame_left, pause_image, self.pause)
+        button_2.place(relx=0.5, y=150, anchor=tk.CENTER)
+        button_3 = button(self.frame_left, stop_image, self.stop)
+        button_3.place(relx=0.5, y=220, anchor=tk.CENTER)
+        button_4 = button(self.frame_left, previous_image, self.previous)
+        button_4.place(relx=0.5, y=290, anchor=tk.CENTER)
+        button_5 = button(self.frame_left, next_image, self.next)
+        button_5.place(relx=0.5, y=360, anchor=tk.CENTER)
+
     def add_songs(self):
         # adds songs to playlist
         songs = filedialog.askopenfilenames(title="Choose A Song", filetypes=(("mp3 Files", "*.mp3"), ))
@@ -124,14 +116,17 @@ class App(tk.Tk):
 
     def play_alt(self, song_number):
         # plays a next song
-        self.song = self.playlist.get(song_number)
-        self.song_directory = list(filter(lambda active: active[1] == self.song, self.songs_list))
-        self.file = str(self.song_directory[0][0]) + "/" + str(self.song)
-        mixer.music.load(self.file)
-        mixer.music.play()
-        self.play_time()
-        self.highlight(song_number)
-        self.show_album()
+        try:
+            self.song = self.playlist.get(song_number)
+            self.song_directory = list(filter(lambda active: active[1] == self.song, self.songs_list))
+            self.file = str(self.song_directory[0][0]) + "/" + str(self.song)
+            mixer.music.load(self.file)
+            mixer.music.play()
+            self.play_time()
+            self.highlight(song_number)
+            self.show_album()
+        except IndexError:
+            self.stop()
 
     def pause(self):
         if not self.playing:
@@ -164,9 +159,12 @@ class App(tk.Tk):
 
     def next(self):
         # get an index of the next song
-        next_song = self.playlist.curselection()
-        next_song = next_song[0] + 1
-        self.play_alt(next_song)
+        try:
+            next_song = self.playlist.curselection()
+            next_song = next_song[0] + 1
+            self.play_alt(next_song)
+        except IndexError:
+            self.stop()
 
     def previous(self):
         # get an index of the previous song
@@ -189,13 +187,9 @@ class App(tk.Tk):
         try:
             album_name = TinyTag.get(self.file)
             album_image = ImageTk.PhotoImage(Image.open(str(self.song_directory[0][0]) + "/cover.jpg").resize((150, 150)))
-            print("Album cover je dostupný.")
-            print(album_name.album)
         except FileNotFoundError:
-            print(f"Album cover není dostupný.")
             album_image = self.default_album
         finally:
-            print(type(self.song_info))
             self.song_info.config(text=album_name.album, image=album_image)
             self.song_info.image = album_image
             self.song_info.place(relx=0.5, y=340, anchor=tk.CENTER)
