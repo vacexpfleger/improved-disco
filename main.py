@@ -63,7 +63,7 @@ class App(tk.Tk):
         self.add_song_menu.add_command(label="Add", command=self.add_songs)
         self.add_song_menu.add_command(label="Clear", command=self.clear)
         self.add_song_menu.add_separator()
-        self.add_song_menu.add_command(label="Exit", command=quit)
+        self.add_song_menu.add_command(label="Exit", command=self.exitapp)
 
         self.file = None
         self.song = None
@@ -126,6 +126,8 @@ class App(tk.Tk):
             self.highlight(song_number)
             self.show_album()
         except IndexError:
+            self.show_album()
+            self.highlight(0)
             self.stop()
 
     def pause(self):
@@ -149,9 +151,7 @@ class App(tk.Tk):
                 self.next()
 
         else:
-            mixer.music.stop()
-            final_time = f'End of playlist.'
-            self.highlight(0)
+            final_time = f"00:00:00/00:00:00"
 
         self.status_bar.config(text=final_time)
         self.status_bar.place(relx=0.5, y=215, anchor=tk.CENTER)
@@ -159,12 +159,9 @@ class App(tk.Tk):
 
     def next(self):
         # get an index of the next song
-        try:
-            next_song = self.playlist.curselection()
-            next_song = next_song[0] + 1
-            self.play_alt(next_song)
-        except IndexError:
-            self.stop()
+        next_song = self.playlist.curselection()
+        next_song = next_song[0] + 1
+        self.play_alt(next_song)
 
     def previous(self):
         # get an index of the previous song
@@ -174,8 +171,6 @@ class App(tk.Tk):
 
     def stop(self):
         mixer.music.stop()
-        self.status_bar.after_cancel(self.update_time)
-        self.status_bar.config(text=f'00:00:00/00:00:00')
 
     def highlight(self, selection):
         self.playlist.selection_clear(0, END)
@@ -185,20 +180,27 @@ class App(tk.Tk):
     def show_album(self):
         global album_name, album_image
         try:
-            album_name = TinyTag.get(self.file)
+            album_name = TinyTag.get(self.file).album
             album_image = ImageTk.PhotoImage(Image.open(str(self.song_directory[0][0]) + "/cover.jpg").resize((150, 150)))
         except FileNotFoundError:
             album_image = self.default_album
+        except IndexError:
+            album_name = ""
+            album_image = self.default_album
         finally:
-            self.song_info.config(text=album_name.album, image=album_image)
+            self.song_info.config(text=album_name, image=album_image)
             self.song_info.image = album_image
             self.song_info.place(relx=0.5, y=340, anchor=tk.CENTER)
 
     def clear(self):
         self.playlist.delete(0, END)
+        self.add_count = 0
 
     def startapp(self):
         self.mainloop()
+
+    def exitapp(self):
+        self.destroy()
 
 
 if __name__ == "__main__":
